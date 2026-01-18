@@ -40,21 +40,10 @@
 │   │   ├── controller/# 控制器
 │   │   └── config/   # 配置类
 │   └── pom.xml
-├── docs/              # 文档和脚本
-│   ├── archived/     # 已归档的文档（已解决的问题）
-│   │   ├── issues/   # 问题文档
-│   │   └── migration/# 迁移文档
-│   ├── scripts/      # 脚本文件
-│   │   ├── migration/# 迁移脚本
-│   │   ├── diagnosis/# 诊断脚本
-│   │   └── dev/      # 开发脚本
-│   └── README.md     # 文档说明
 ├── REQUIREMENTS.md   # 需求文档
 ├── DATABASE_DESIGN.md # 数据库设计文档
 └── START_GUIDE.md    # 启动说明
 ```
-
-> **注意**：项目根目录下的文档和脚本已整理到 `docs/` 目录，详见 [docs/README.md](docs/README.md)
 
 ## 快速开始
 
