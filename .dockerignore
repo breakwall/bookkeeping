@@ -1,0 +1,48 @@
+# Docker 构建时忽略的文件
+
+# Git
+.git
+.gitignore
+
+# IDE
+.idea
+.vscode
+*.iml
+*.swp
+*.swo
+*~
+
+# 日志
+logs/
+*.log
+
+# 临时文件
+*.tmp
+*.temp
+*.bak
+*.backup
+
+# 文档
+*.md
+!README.md
+
+# 测试
+target/surefire-reports/
+target/test-classes/
+src/test/
+
+# 构建产物（会单独复制）
+target/*.jar
+!target/bookkeeping-backend-1.0.0.jar
+
+# 前端（会单独构建）
+frontend/node_modules/
+frontend/dist/
+
+# CSV 数据（开发用）
+csv_data/
+
+# 数据库（不应包含在镜像中）
+backend/data/
+*.db
+*.db-journal

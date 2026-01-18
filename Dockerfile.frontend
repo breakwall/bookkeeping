@@ -1,0 +1,24 @@
+# 使用 Nginx 作为前端服务器
+FROM nginx:alpine
+
+# 设置时区为 Asia/Shanghai (UTC+8)
+ENV TZ=Asia/Shanghai
+RUN apk add --no-cache tzdata && \
+    ln -snf /usr/share/zoneinfo/$TZ /etc/localtime && \
+    echo $TZ > /etc/timezone
+
+# 删除默认配置
+RUN rm /etc/nginx/conf.d/default.conf
+
+# 复制自定义 Nginx 配置
+COPY nginx.conf /etc/nginx/conf.d/default.conf
+
+# 复制前端构建产物（从项目根目录构建）
+# 注意：部署脚本会自动将 frontend/dist 复制到项目根目录
+COPY frontend/dist /usr/share/nginx/html
+
+# 暴露端口
+EXPOSE 80
+
+# Nginx 默认启动命令已经包含在基础镜像中
+# 无需额外配置

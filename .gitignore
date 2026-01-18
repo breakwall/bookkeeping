@@ -1,0 +1,114 @@
+# IDE
+.idea/
+.vscode/
+*.iml
+*.swp
+*.swo
+*~
+
+# Node
+node_modules/
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+.pnpm-debug.log*
+
+# Build
+dist/
+build/
+*.log
+*.log.gz
+*.log.*
+
+# Environment
+.env
+.env.local
+.env.*.local
+
+# Database
+*.db
+*.db-shm
+*.db-wal
+*.db.backup.*
+data/
+backend/data/*.db
+backend/data/*.backup.*
+
+# Maven
+target/
+.mvn/
+mvnw
+mvnw.cmd
+*.class
+surefire-reports/
+
+# Deployment
+deploy-package/
+*.zip
+*.jar.original
+
+# Logs
+logs/
+backend/logs/
+*.log
+*.log.gz
+
+# Temporary files
+*.tmp
+*.bak
+*.backup
+*_error.txt
+*_output.txt
+migration_error.txt
+test_output.txt
+
+# Test files
+test.html
+frontend/test.html
+
+# Personal data files (should not be committed to public repo)
+csv_data/
+
+# Documentation directory
+docs/
+backend/docs/
+backend/db/
+
+# Root directory markdown files (except specific files)
+/*.md
+!README.md
+!DATABASE_DESIGN.md
+!START_GUIDE.md
+!REQUIREMENTS.md
+
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+.coverage
+htmlcov/
+
+# Vite cache
+.vite/
+.cache/
+
+# Process files
+*.pid
+*.seed
+*.pid.lock
+
+# OS
+.DS_Store
+Thumbs.db
+Desktop.ini# Editor directories and files
+.vscode/*
+!.vscode/extensions.json
+.idea/*
+!.idea/codeStyles/
+!.idea/inspectionProfiles/

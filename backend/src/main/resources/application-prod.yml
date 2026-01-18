@@ -1,0 +1,58 @@
+# 生产环境配置示例
+# 使用方法：设置环境变量 SPRING_PROFILES_ACTIVE=prod
+# 或在启动时指定：-Dspring.profiles.active=prod
+
+spring:
+  application:
+    name: bookkeeping-backend
+  
+  datasource:
+    # 使用环境变量覆盖数据库路径
+    url: ${SPRING_DATASOURCE_URL:jdbc:sqlite:/app/data/bookkeeping.db}
+    driver-class-name: org.sqlite.JDBC
+  
+  jpa:
+    database-platform: org.hibernate.community.dialect.SQLiteDialect
+    hibernate:
+      ddl-auto: update
+    # 生产环境关闭 SQL 日志
+    show-sql: false
+    properties:
+      hibernate:
+        format_sql: false
+  
+  servlet:
+    multipart:
+      max-file-size: 10MB
+      max-request-size: 10MB
+
+server:
+  port: ${SERVER_PORT:8080}
+  servlet:
+    context-path: /
+
+# CORS 配置（使用环境变量，支持多个来源用逗号分隔）
+cors:
+  allowed-origins: ${CORS_ALLOWED_ORIGINS:http://localhost}
+
+# JWT配置（使用环境变量）
+jwt:
+  secret: ${JWT_SECRET:change-this-in-production}
+  expiration: ${JWT_EXPIRATION:86400000} # 24小时（毫秒）
+
+# 日志配置
+logging:
+  level:
+    root: INFO
+    com.bookkeeping: INFO  # 生产环境使用 INFO，减少日志量
+    com.bookkeeping.config.SQLiteLocalDateConverter: INFO  # 日期转换器日志
+    org.hibernate.SQL: DEBUG  # Hibernate SQL 日志
+    org.hibernate.type.descriptor.sql.BasicBinder: TRACE  # SQL 参数绑定日志
+  pattern:
+    console: "%d{yyyy-MM-dd HH:mm:ss} [%level] %logger{36} - %msg%n"
+    file: "%d{yyyy-MM-dd HH:mm:ss} [%thread] %-5level %logger{36} - %msg%n"
+  file:
+    # 使用环境变量指定日志路径
+    name: ${LOGGING_FILE_NAME:logs/bookkeeping-backend.log}
+    max-size: 10MB
+    max-history: 30  # 生产环境保留30天日志
