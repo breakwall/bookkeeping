@@ -323,7 +323,13 @@ const loadReconciliationData = async () => {
     // 设置备注
     snapshotNote.value = data.note || ''
     if (data.accounts.length > 0) {
-      activeAccountId.value = data.accounts[0].accountId.toString()
+      // 检查当前选中的账户是否仍存在于新数据中
+      const currentActiveId = activeAccountId.value
+      const accountExists = data.accounts.some(a => a.accountId.toString() === currentActiveId)
+      // 只有当没有选中账户或选中的账户已不存在时，才切换到第一个账户
+      if (!currentActiveId || !accountExists) {
+        activeAccountId.value = data.accounts[0].accountId.toString()
+      }
     }
     
     // 检查导航按钮状态
