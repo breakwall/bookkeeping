@@ -174,7 +174,7 @@ public class ReconciliationServiceTest extends AbstractBaseTest {
         deposit1.setDepositTime(date);
         deposit1.setAmount(new BigDecimal("60000.00"));
         deposit1.setInterestRate(new BigDecimal("3.5"));
-        deposit1.setTerm(12);
+        deposit1.setTerm(new BigDecimal("12"));
         deposits1.add(deposit1);
         accountData1.setDeposits(deposits1);
         accountDataList.add(accountData1);
