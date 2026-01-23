@@ -78,14 +78,23 @@ public class ReconciliationService {
         // 决定显示哪些账户
         List<Account> accountsToShow = new ArrayList<>();
         if (hasSnapshot) {
-            // 快照存在，只显示快照中涉及的账户（即使当前已禁用，保留历史事实）
-            // 如果没有存款记录（空快照），返回空账户列表
+            // 快照存在
             Set<Long> accountIdsInSnapshot = depositsByAccount.keySet();
             logger.debug("快照中的账户ID: {}", accountIdsInSnapshot);
             if (!accountIdsInSnapshot.isEmpty()) {
+                // 有存款记录，显示快照中涉及的账户和启用的账户（即使当前已禁用，保留历史事实）,注意去重
                 accountsToShow = accountRepository.findByUserIdAndIdIn(userId, new ArrayList<>(accountIdsInSnapshot));
+                List<Account> activeAccounts = accountRepository.findByUserIdAndStatus(userId, Account.AccountStatus.ACTIVE);
+                for (Account account : activeAccounts) {
+                    if (!accountsToShow.contains(account)) {
+                        accountsToShow.add(account);
+                    }
+                }
+            } else {
+                // 空快照（没有存款记录），显示所有启用的账户，让用户可以添加存款记录
+                accountsToShow = accountRepository.findByUserIdAndStatus(userId, Account.AccountStatus.ACTIVE);
+                logger.debug("空快照，显示所有启用的账户，数量: {}", accountsToShow.size());
             }
-            // 如果 accountIdsInSnapshot 为空，accountsToShow 保持为空列表（空快照）
             logger.debug("显示的账户数量: {}", accountsToShow.size());
         } else {
             // 快照不存在，也返回空账户列表（不显示启用的账户，让前端知道该日期没有快照）
