@@ -119,7 +119,7 @@
             </el-table-column>
             <el-table-column prop="term" label="存期">
               <template #default="{ row }">
-                {{ row.term ? row.term + '年' : '-' }}
+                {{ row.term ? (row.term === 0.5 ? '6个月' : row.term + '年') : '-' }}
               </template>
             </el-table-column>
             <el-table-column prop="note" label="备注" />
@@ -193,16 +193,19 @@
           />
         </el-form-item>
         <el-form-item label="存期" prop="term">
-          <el-input-number
+          <el-select
             v-model="depositForm.term"
-            :precision="0"
-            :min="1"
-            :max="10"
             :disabled="depositForm.depositType !== '定期'"
             style="width: 100%"
-            placeholder="请输入存期（年）"
-          />
-          <span v-if="depositForm.depositType === '定期'" style="margin-left: 10px; color: #909399;">年（1-10年）</span>
+            placeholder="请选择存期"
+            clearable
+          >
+            <el-option label="6个月" :value="0.5" />
+            <el-option label="1年" :value="1" />
+            <el-option label="2年" :value="2" />
+            <el-option label="3年" :value="3" />
+            <el-option label="5年" :value="5" />
+          </el-select>
         </el-form-item>
         <el-form-item label="备注" prop="note">
           <el-input
@@ -267,10 +270,8 @@ const depositRules: FormRules = {
     {
       validator: (rule: any, value: any, callback: any) => {
         if (depositForm.depositType === '定期') {
-          if (!value) {
-            callback(new Error('定期存款必须填写存期'))
-          } else if (value < 1 || value > 10) {
-            callback(new Error('存期必须在1-10年之间'))
+          if (!value && value !== 0) {
+            callback(new Error('定期存款必须选择存期'))
           } else {
             callback()
           }
@@ -278,7 +279,7 @@ const depositRules: FormRules = {
           callback()
         }
       },
-      trigger: 'blur'
+      trigger: 'change'
     }
   ]
 }

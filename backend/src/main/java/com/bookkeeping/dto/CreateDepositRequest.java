@@ -26,7 +26,7 @@ public class CreateDepositRequest {
     
     private BigDecimal interestRate;
     
-    private Integer term;
+    private BigDecimal term;
     
     private String note;
     

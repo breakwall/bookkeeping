@@ -14,12 +14,12 @@ public class DepositResponse {
     private LocalDate depositTime;
     private BigDecimal amount;
     private BigDecimal interestRate;
-    private Integer term;
+    private BigDecimal term;
     private String note;
     private LocalDate reconciliationDate;
     
     public DepositResponse(Long id, Long accountId, String depositType, LocalDate depositTime,
-                          BigDecimal amount, BigDecimal interestRate, Integer term,
+                          BigDecimal amount, BigDecimal interestRate, BigDecimal term,
                           String note, LocalDate reconciliationDate) {
         this.id = id;
         this.accountId = accountId;

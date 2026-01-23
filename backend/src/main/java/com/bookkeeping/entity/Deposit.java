@@ -34,8 +34,8 @@ public class Deposit {
     @Column(precision = 5, scale = 2)
     private BigDecimal interestRate;
 
-    @Column
-    private Integer term;
+    @Column(precision = 3, scale = 1)
+    private BigDecimal term;
 
     @Column(columnDefinition = "TEXT")
     private String note;

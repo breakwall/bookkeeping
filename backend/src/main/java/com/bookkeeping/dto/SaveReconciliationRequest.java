@@ -34,7 +34,7 @@ public class SaveReconciliationRequest {
         private java.time.LocalDate depositTime;
         private java.math.BigDecimal amount;
         private java.math.BigDecimal interestRate;
-        private Integer term;
+        private java.math.BigDecimal term;
         private String note;
     }
 }

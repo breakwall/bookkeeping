@@ -23,7 +23,7 @@ public class UpdateDepositRequest {
     
     private BigDecimal interestRate;
     
-    private Integer term;
+    private BigDecimal term;
     
     private String note;
 }
