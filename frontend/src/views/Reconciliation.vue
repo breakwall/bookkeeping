@@ -323,11 +323,8 @@ const loadReconciliationData = async () => {
     // 设置备注
     snapshotNote.value = data.note || ''
     if (data.accounts.length > 0) {
-      // 检查当前选中的账户是否仍存在于新数据中
-      const currentActiveId = activeAccountId.value
-      const accountExists = data.accounts.some(a => a.accountId.toString() === currentActiveId)
-      // 只有当没有选中账户或选中的账户已不存在时，才切换到第一个账户
-      if (!currentActiveId || !accountExists) {
+      // 如果没有选中账户，默认选中第一个
+      if (!activeAccountId.value) {
         activeAccountId.value = data.accounts[0].accountId.toString()
       }
     }
@@ -523,8 +520,14 @@ const handleDeleteDeposit = async (deposit: Deposit) => {
     await depositApi.deleteDeposit(deposit.id)
     ElMessage.success('删除成功')
     
+    // 保存当前选中的账户
+    const previousAccountId = activeAccountId.value
     // 重新加载数据
     await loadReconciliationData()
+    // 恢复账户选择（只要该账户仍存在）
+    if (previousAccountId && reconciliationData.value.accounts.some(a => a.accountId.toString() === previousAccountId)) {
+      activeAccountId.value = previousAccountId
+    }
   } catch (error: any) {
     if (error !== 'cancel') {
       const errorMessage = error?.response?.data?.message || error?.message || '删除失败'
@@ -577,8 +580,14 @@ const handleSubmitDeposit = async () => {
         }
 
         depositDialogVisible.value = false
+        // 保存当前选中的账户
+        const previousAccountId = activeAccountId.value
         // 重新加载数据
         await loadReconciliationData()
+        // 恢复账户选择（只要该账户仍存在）
+        if (previousAccountId && reconciliationData.value.accounts.some(a => a.accountId.toString() === previousAccountId)) {
+          activeAccountId.value = previousAccountId
+        }
       } catch (error: any) {
         const errorMessage = error?.response?.data?.message || error?.message || '操作失败'
         ElMessage.error(errorMessage)
