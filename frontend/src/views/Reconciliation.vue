@@ -106,7 +106,11 @@
           </div>
           <el-table :data="account.deposits" style="width: 100%">
             <el-table-column prop="depositType" label="存款类型" />
-            <el-table-column prop="depositTime" label="存款时间" />
+            <el-table-column prop="depositTime" label="存款时间">
+              <template #default="{ row }">
+                {{ row.depositType === '活期' ? '-' : row.depositTime }}
+              </template>
+            </el-table-column>
             <el-table-column prop="amount" label="金额">
               <template #default="{ row }">
                 ¥{{ row.amount.toLocaleString() }}
@@ -170,6 +174,7 @@
             format="YYYY-MM-DD"
             value-format="YYYY-MM-DD"
             style="width: 100%"
+            :disabled="depositForm.depositType === '活期'"
           />
         </el-form-item>
         <el-form-item label="金额" prop="amount">
@@ -481,6 +486,8 @@ const handleAddDeposit = (accountId: number) => {
   editingDepositId.value = null
   currentAccountId.value = accountId
   resetDepositForm()
+  // 设置默认存款时间为今天
+  depositForm.depositTime = new Date().toISOString().split('T')[0]
   depositDialogVisible.value = true
 }
 
@@ -614,6 +621,8 @@ const handleDepositTypeChange = (value: string) => {
     depositForm.interestRate = 0
     // 存期清空
     depositForm.term = undefined
+    // 活期时，存款时间设为今天
+    depositForm.depositTime = new Date().toISOString().split('T')[0]
   } else if (value !== '定期') {
     // 理财或其他时，存期清空
     depositForm.term = undefined

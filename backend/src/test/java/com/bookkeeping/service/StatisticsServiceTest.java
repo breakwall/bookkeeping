@@ -396,6 +396,28 @@ public class StatisticsServiceTest extends AbstractBaseTest {
     }
     
     @Test
+    @DisplayName("UC-STAT-011: 年度统计（第一年只有一次快照）")
+    public void testGetYearlyStatistics_FirstYearSingleSnapshot() {
+        // Given: 第一年只有一次快照
+        LocalDate date = LocalDate.of(2024, 6, 15);
+        createSnapshot(userId, date, new BigDecimal("50000.00"));
+        
+        // When: 获取年度统计
+        YearlyStatisticsResponse response = statisticsService.getYearlyStatistics(userId);
+        
+        // Then: 验证结果 - 第一年只有一次快照时，增值 = totalAmount（视为从0开始）
+        assertNotNull(response);
+        assertNotNull(response.getData());
+        assertEquals(1, response.getData().size());
+        
+        YearlyStatisticsResponse.YearlyDataItem item = response.getData().get(0);
+        assertEquals("2024", item.getYear());
+        assertEquals(new BigDecimal("50000.00"), item.getIncrease());
+        
+        System.out.println("✓ UC-STAT-011: 年度统计（第一年只有一次快照） - 通过");
+    }
+    
+    @Test
     @DisplayName("UC-STAT-010: 年度统计（无快照记录）")
     public void testGetYearlyStatistics_NoSnapshots() {
         // Given: 没有任何快照记录

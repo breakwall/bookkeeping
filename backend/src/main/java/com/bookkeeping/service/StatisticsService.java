@@ -358,7 +358,12 @@ public class StatisticsService {
                 
                 if (year == firstYear) {
                     // 第一年：最后一次 - 第一次
-                    increase = lastSnapshot.getTotalAmount().subtract(firstSnapshot.getTotalAmount());
+                    // 特殊情况：如果第一年只有一次快照，增值 = totalAmount（视为从0开始）
+                    if (firstSnapshot.getId().equals(lastSnapshot.getId())) {
+                        increase = lastSnapshot.getTotalAmount();
+                    } else {
+                        increase = lastSnapshot.getTotalAmount().subtract(firstSnapshot.getTotalAmount());
+                    }
                 } else {
                     // 第二年开始：该年最后一次 - 上一年最后一次
                     if (previousYearLastAmount != null) {
