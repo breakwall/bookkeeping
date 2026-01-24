@@ -75,6 +75,41 @@
             </div>
           </div>
         </el-tab-pane>
+
+        <!-- 到期统计标签页 -->
+        <el-tab-pane label="到期统计" name="maturity">
+          <template #label>
+            <span>到期统计</span>
+          </template>
+          <div class="maturity-stats">
+            <div class="stats-header">
+              <h4>定期存款到期时间统计（一年内）</h4>
+            </div>
+            <el-table 
+              :data="maturityStats.data" 
+              style="width: 100%; margin-top: 20px"
+              v-loading="maturityLoading"
+            >
+              <el-table-column prop="accountName" label="账户名称" width="150" />
+              <el-table-column prop="depositAmount" label="存款金额" width="120">
+                <template #default="scope">
+                  ¥{{ scope.row.depositAmount.toLocaleString() }}
+                </template>
+              </el-table-column>
+              <el-table-column prop="depositTime" label="存款时间" width="120" />
+              <el-table-column prop="maturityDate" label="到期时间" width="120" />
+              <el-table-column prop="remainingDays" label="剩余天数" width="100">
+                <template #default="scope">
+                  <el-tag 
+                    :type="scope.row.remainingDays <= 30 ? 'danger' : (scope.row.remainingDays <= 90 ? 'warning' : 'success')"
+                  >
+                    {{ scope.row.remainingDays }}天
+                  </el-tag>
+                </template>
+              </el-table-column>
+            </el-table>
+          </div>
+        </el-tab-pane>
       </el-tabs>
     </el-card>
   </div>
@@ -85,7 +120,7 @@ import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import type { ECharts } from 'echarts'
-import { statisticsApi, type MonthlyStatistics, type TrendStatistics, type YearlyStatistics } from '@/api/statistics'
+import { statisticsApi, type MonthlyStatistics, type TrendStatistics, type YearlyStatistics, type MaturityStatistics } from '@/api/statistics'
 
 const activeTab = ref<string>('monthly') // 默认显示月度统计
 const selectedMonth = ref<string>(
@@ -120,6 +155,15 @@ const yearlyData = reactive<{
 }>({
   data: []
 })
+
+// 到期统计数据
+const maturityStats = reactive<{
+  data: MaturityStatistics['data']
+}>({
+  data: []
+})
+
+const maturityLoading = ref<boolean>(false)
 
 // 处理标签页切换
 const handleTabChange = async (tabName: string) => {
@@ -181,6 +225,12 @@ const handleTabChange = async (tabName: string) => {
       setTimeout(() => {
         yearlyChart?.resize()
       }, 100)
+    }
+  } else if (tabName === 'maturity') {
+    // 切换到到期统计标签页
+    if (!maturityStats.data.length) {
+      // 如果还没有加载过数据，则加载
+      await loadMaturityStatistics()
     }
   }
 }
@@ -245,6 +295,20 @@ const loadYearlyStatistics = async () => {
     const errorMessage = error?.response?.data?.message || error?.message || '加载年度统计失败'
     ElMessage.error(errorMessage)
     console.error('加载年度统计失败:', error)
+  }
+}
+
+const loadMaturityStatistics = async () => {
+  maturityLoading.value = true
+  try {
+    const data = await statisticsApi.getMaturityStatistics()
+    maturityStats.data = data.data
+  } catch (error: any) {
+    const errorMessage = error?.response?.data?.message || error?.message || '加载到期统计失败'
+    ElMessage.error(errorMessage)
+    console.error('加载到期统计失败:', error)
+  } finally {
+    maturityLoading.value = false
   }
 }
 

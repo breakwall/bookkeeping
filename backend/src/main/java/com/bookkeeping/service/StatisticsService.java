@@ -1,5 +1,6 @@
 package com.bookkeeping.service;
 
+import com.bookkeeping.dto.MaturityStatisticsResponse;
 import com.bookkeeping.dto.MonthlyStatisticsResponse;
 import com.bookkeeping.dto.TrendStatisticsResponse;
 import com.bookkeeping.dto.YearlyStatisticsResponse;
@@ -16,11 +17,8 @@ import java.math.BigDecimal;
 import java.math.RoundingMode;
 import java.time.LocalDate;
 import java.time.format.DateTimeFormatter;
-import java.util.ArrayList;
-import java.util.Comparator;
-import java.util.List;
-import java.util.Map;
-import java.util.Optional;
+import java.time.temporal.ChronoUnit;
+import java.util.*;
 import java.util.stream.Collectors;
 
 @Service
@@ -436,6 +434,72 @@ public class StatisticsService {
         return uniqueDates.stream()
                 .filter(date -> date.isBefore(beforeDate))
                 .findFirst()
+                .orElse(null);
+    }
+    
+    /**
+     * 到期统计：统计最近1年内到期的定期存款
+     */
+    public MaturityStatisticsResponse getMaturityStatistics(Long userId) {
+        LocalDate now = LocalDate.now();
+        LocalDate oneYearLater = now.plusDays(365);
+        
+        // 获取最近一次快照日期
+        LocalDate latestSnapshotDate = getLatestSnapshotDate(userId);
+        if (latestSnapshotDate == null) {
+            // 没有快照记录，返回空列表
+            return new MaturityStatisticsResponse(new ArrayList<>());
+        }
+        
+        // 获取最近一次快照的所有存款记录
+        List<Deposit> deposits = depositRepository.findByUserIdAndReconciliationDate(userId, latestSnapshotDate);
+        
+        // 获取相关账户信息
+        Set<Long> accountIds = deposits.stream().map(Deposit::getAccountId).collect(Collectors.toSet());
+        List<Account> accounts = accountRepository.findAllById(accountIds);
+        Map<Long, String> accountNameMap = accounts.stream()
+                .collect(Collectors.toMap(Account::getId, Account::getName));
+        
+        // 筛选定期存款并计算到期信息
+        List<MaturityStatisticsResponse.MaturityDataItem> maturityData = deposits.stream()
+                .filter(deposit -> "定期".equals(deposit.getDepositType()) && deposit.getTerm() != null)
+                .map(deposit -> {
+                    // 计算到期时间：存款时间 + 存期（年）* 365天
+                    LocalDate maturityDate = deposit.getDepositTime().plusDays(
+                            deposit.getTerm().multiply(new BigDecimal("365")).longValue()
+                    );
+                    
+                    // 计算剩余天数
+                    long remainingDays = ChronoUnit.DAYS.between(now, maturityDate);
+                    
+                    // 只返回1年内到期且未过期的
+                    if (remainingDays >= 0 && maturityDate.isBefore(oneYearLater.plusDays(1))) {
+                        String accountName = accountNameMap.get(deposit.getAccountId());
+                        return new MaturityStatisticsResponse.MaturityDataItem(
+                                accountName != null ? accountName : "未知账户",
+                                deposit.getAmount(),
+                                deposit.getDepositTime(),
+                                maturityDate,
+                                remainingDays
+                        );
+                    }
+                    return null;
+                })
+                .filter(Objects::nonNull)
+                .sorted(Comparator.comparing(MaturityStatisticsResponse.MaturityDataItem::getMaturityDate))
+                .collect(Collectors.toList());
+        
+        return new MaturityStatisticsResponse(maturityData);
+    }
+    
+    /**
+     * 获取最近一次快照日期
+     */
+    private LocalDate getLatestSnapshotDate(Long userId) {
+        return snapshotRepository.findByUserIdOrderByReconciliationDateDesc(userId)
+                .stream()
+                .findFirst()
+                .map(ReconciliationSnapshot::getReconciliationDate)
                 .orElse(null);
     }
 }

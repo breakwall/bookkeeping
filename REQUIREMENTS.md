@@ -214,7 +214,7 @@
       - 如果某一年没有任何快照记录，增值显示为0
 - **前端需求**：
   - 使用 ECharts / AntV 等图表库（具体库可后定）。
-  - 统计页面使用标签页（tab）组织：月度统计、趋势统计、年度统计
+  - 统计页面使用标签页（tab）组织：月度统计、趋势统计、年度统计、到期统计
   - 月度统计：顶部日期选择器 + 指标卡片 + 图表区域
   - 趋势统计：顶部周期选择器 + 图表区域
   - 年度统计：柱状图区域（默认显示全部年份，不支持时间范围选择）
@@ -289,13 +289,41 @@
         ]
       }
       ```
-    - 说明：
-      - `year`：年份，格式为 YYYY
-      - `increase`：该年的资产变化增值（BigDecimal）
-        - 第一年：最后一次快照的totalAmount - 第一次快照的totalAmount
-        - 第二年开始：该年最后一次快照的totalAmount - 上一年最后一次快照的totalAmount
-        - 特殊情况：如果某一年只有一次快照，且有前一年快照，则：该次快照的totalAmount - 前一年最后一次快照的totalAmount
-        - 如果某一年没有任何快照记录，increase 为 0
+  
+  - `GET /api/statistics/maturity`：到期统计
+    - 说明：统计定期存款在一年内的到期情况，按照到期时间从近到远排序
+    - 响应：
+      ```json
+      {
+        "data": [
+          {
+            "accountName": "工商银行",
+            "depositAmount": 100000.00,
+            "depositTime": "2023-12-01",
+            "maturityDate": "2024-12-01",
+            "remainingDays": 30
+          },
+          {
+            "accountName": "建设银行",
+            "depositAmount": 50000.00,
+            "depositTime": "2023-10-15",
+            "maturityDate": "2025-10-15",
+            "remainingDays": 120
+          }
+        ]
+      }
+      ```
+    - 字段说明：
+      - `accountName`：账户名称
+      - `depositAmount`：存款金额
+      - `depositTime`：存款时间，格式为 YYYY-MM-DD
+      - `maturityDate`：到期时间，格式为 YYYY-MM-DD
+      - `remainingDays`：剩余天数（到期日期距今天的天数）
+    - 业务规则：
+      - 只统计定期存款（depositType = "定期"）
+      - 只显示一年内（365天内）到期的存款
+      - 按到期时间从近到远排序
+      - 基于最近一次对账快照的数据
 
 ### 3.4 用户认证
 

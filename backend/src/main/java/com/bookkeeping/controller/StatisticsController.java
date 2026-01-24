@@ -1,6 +1,7 @@
 package com.bookkeeping.controller;
 
 import com.bookkeeping.dto.ApiResponse;
+import com.bookkeeping.dto.MaturityStatisticsResponse;
 import com.bookkeeping.dto.MonthlyStatisticsResponse;
 import com.bookkeeping.dto.TrendStatisticsResponse;
 import com.bookkeeping.dto.YearlyStatisticsResponse;
@@ -47,6 +48,16 @@ public class StatisticsController {
     public ApiResponse<YearlyStatisticsResponse> getYearlyStatistics(HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
         YearlyStatisticsResponse response = statisticsService.getYearlyStatistics(userId);
+        return ApiResponse.success(response);
+    }
+    
+    /**
+     * 到期统计
+     */
+    @GetMapping("/maturity")
+    public ApiResponse<MaturityStatisticsResponse> getMaturityStatistics(HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        MaturityStatisticsResponse response = statisticsService.getMaturityStatistics(userId);
         return ApiResponse.success(response);
     }
 }

@@ -33,6 +33,18 @@ export interface YearlyDataItem {
   increase: number // 该年的资产变化增值
 }
 
+export interface MaturityDataItem {
+  accountName: string;
+  depositAmount: number;
+  depositTime: string;
+  maturityDate: string;
+  remainingDays: number;
+}
+
+export interface MaturityStatistics {
+  data: MaturityDataItem[];
+}
+
 export const statisticsApi = {
   // 按月统计
   getMonthlyStatistics(month: string) {
@@ -51,5 +63,10 @@ export const statisticsApi = {
   // 年度统计
   getYearlyStatistics() {
     return request.get<YearlyStatistics>('/statistics/yearly')
+  },
+
+  // 到期统计
+  getMaturityStatistics() {
+    return request.get<MaturityStatistics>('/statistics/maturity')
   }
 }
