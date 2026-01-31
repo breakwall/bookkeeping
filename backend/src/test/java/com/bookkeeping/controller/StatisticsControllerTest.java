@@ -207,6 +207,26 @@ public class StatisticsControllerTest extends AbstractBaseTest {
         
         System.out.println("✓ UC-STAT-CTRL-005: GET /api/statistics/trend 获取趋势统计（最近半年） - 通过");
     }
+
+    @Test
+    @DisplayName("UC-STAT-CTRL-011: GET /api/statistics/account-trend 获取账户趋势统计")
+    public void testGetAccountTrendStatistics_Success() throws Exception {
+        mockMvc.perform(get("/api/statistics/account-trend")
+                .param("period", "all")
+                .header("Authorization", "Bearer " + validToken))
+                .andExpect(status().isOk())
+                .andExpect(content().contentType(MediaType.APPLICATION_JSON))
+                .andExpect(jsonPath("$.message").value("操作成功"))
+                .andExpect(jsonPath("$.data").exists())
+                .andExpect(jsonPath("$.data.period").value("all"))
+                .andExpect(jsonPath("$.data.months").isArray())
+                .andExpect(jsonPath("$.data.accounts").isArray())
+                .andExpect(jsonPath("$.data.accounts[0].accountId").exists())
+                .andExpect(jsonPath("$.data.accounts[0].accountName").exists())
+                .andExpect(jsonPath("$.data.accounts[0].amounts").isArray());
+
+        System.out.println("✓ UC-STAT-CTRL-011: GET /api/statistics/account-trend 获取账户趋势统计 - 通过");
+    }
     
     @Test
     @DisplayName("UC-STAT-CTRL-006: GET /api/statistics/yearly 获取年度统计成功")

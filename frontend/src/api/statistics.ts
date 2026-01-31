@@ -24,6 +24,18 @@ export interface TrendDataItem {
   notes?: string[] // 该月所有有备注的快照备注列表，格式：["2024-01-15: 备注1", "2024-01-20: 备注2"]
 }
 
+export interface AccountTrendStatistics {
+  period: string
+  months: string[]
+  accounts: AccountTrendSeries[]
+}
+
+export interface AccountTrendSeries {
+  accountId: number
+  accountName: string
+  amounts: number[]
+}
+
 export interface YearlyStatistics {
   data: YearlyDataItem[]
 }
@@ -56,6 +68,13 @@ export const statisticsApi = {
   // 趋势统计
   getTrendStatistics(period: string) {
     return request.get<TrendStatistics>('/statistics/trend', {
+      params: { period }
+    })
+  },
+
+  // 账户趋势统计（堆叠面积图）
+  getAccountTrendStatistics(period: string) {
+    return request.get<AccountTrendStatistics>('/statistics/account-trend', {
       params: { period }
     })
   },

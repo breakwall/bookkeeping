@@ -1,5 +1,6 @@
 package com.bookkeeping.service;
 
+import com.bookkeeping.dto.AccountTrendStatisticsResponse;
 import com.bookkeeping.dto.MaturityStatisticsResponse;
 import com.bookkeeping.dto.MonthlyStatisticsResponse;
 import com.bookkeeping.dto.TrendStatisticsResponse;
@@ -303,6 +304,147 @@ public class StatisticsService {
         }
         
         return new TrendStatisticsResponse(period, data);
+    }
+
+    /**
+     * 账户趋势统计（堆叠面积图）
+     */
+    public AccountTrendStatisticsResponse getAccountTrendStatistics(Long userId, String period) {
+        List<ReconciliationSnapshot> allSnapshots = snapshotRepository.findByUserIdOrderByReconciliationDateDesc(userId);
+        boolean hasSnapshots = !allSnapshots.isEmpty();
+
+        LocalDate endDate = LocalDate.now();
+        LocalDate startDate;
+
+        if (hasSnapshots) {
+            switch (period) {
+                case "6m":
+                    startDate = endDate.minusMonths(5).withDayOfMonth(1);
+                    break;
+                case "1y":
+                    startDate = endDate.minusMonths(11).withDayOfMonth(1);
+                    break;
+                case "3y":
+                    startDate = endDate.minusMonths(35).withDayOfMonth(1);
+                    break;
+                case "all":
+                    Optional<LocalDate> earliestDate = allSnapshots.stream()
+                            .map(ReconciliationSnapshot::getReconciliationDate)
+                            .min(Comparator.naturalOrder());
+                    startDate = earliestDate.orElse(endDate).withDayOfMonth(1);
+                    break;
+                default:
+                    startDate = endDate.minusMonths(11).withDayOfMonth(1);
+            }
+        } else {
+            List<Deposit> allDeposits = depositRepository.findByUserIdOrderByReconciliationDateDesc(userId);
+            if (allDeposits.isEmpty()) {
+                return new AccountTrendStatisticsResponse(period, new ArrayList<>(), new ArrayList<>());
+            }
+
+            switch (period) {
+                case "6m":
+                    startDate = endDate.minusMonths(5).withDayOfMonth(1);
+                    break;
+                case "1y":
+                    startDate = endDate.minusMonths(11).withDayOfMonth(1);
+                    break;
+                case "3y":
+                    startDate = endDate.minusMonths(35).withDayOfMonth(1);
+                    break;
+                case "all":
+                    Optional<LocalDate> earliestDate = allDeposits.stream()
+                            .map(Deposit::getReconciliationDate)
+                            .min(Comparator.naturalOrder());
+                    startDate = earliestDate.orElse(endDate).withDayOfMonth(1);
+                    break;
+                default:
+                    startDate = endDate.minusMonths(11).withDayOfMonth(1);
+            }
+        }
+
+        Map<String, LocalDate> monthlyLastDates;
+        if (hasSnapshots) {
+            monthlyLastDates = allSnapshots.stream()
+                    .filter(s -> !s.getReconciliationDate().isBefore(startDate))
+                    .collect(Collectors.groupingBy(
+                            s -> s.getReconciliationDate().format(DateTimeFormatter.ofPattern("yyyy-MM")),
+                            Collectors.collectingAndThen(
+                                    Collectors.toList(),
+                                    list -> list.stream()
+                                            .map(ReconciliationSnapshot::getReconciliationDate)
+                                            .max(Comparator.naturalOrder())
+                                            .orElse(null)
+                            )
+                    ));
+        } else {
+            List<Deposit> depositsForDates = depositRepository.findByUserIdOrderByReconciliationDateDesc(userId);
+            monthlyLastDates = depositsForDates.stream()
+                    .filter(d -> !d.getReconciliationDate().isBefore(startDate))
+                    .collect(Collectors.groupingBy(
+                            d -> d.getReconciliationDate().format(DateTimeFormatter.ofPattern("yyyy-MM")),
+                            Collectors.collectingAndThen(
+                                    Collectors.toList(),
+                                    list -> list.stream()
+                                            .map(Deposit::getReconciliationDate)
+                                            .max(Comparator.naturalOrder())
+                                            .orElse(null)
+                            )
+                    ));
+        }
+
+        List<String> allMonths = new ArrayList<>();
+        LocalDate current = startDate;
+        while (!current.isAfter(endDate)) {
+            allMonths.add(current.format(DateTimeFormatter.ofPattern("yyyy-MM")));
+            current = current.plusMonths(1);
+        }
+
+        List<Account> accounts = accountRepository.findByUserIdOrderByCreatedAtDesc(userId);
+        if (accounts.isEmpty()) {
+            return new AccountTrendStatisticsResponse(period, allMonths, new ArrayList<>());
+        }
+
+        Map<Long, List<BigDecimal>> accountMonthlyAmounts = new LinkedHashMap<>();
+        Map<Long, BigDecimal> lastAmounts = new HashMap<>();
+        for (Account account : accounts) {
+            accountMonthlyAmounts.put(account.getId(), new ArrayList<>());
+            lastAmounts.put(account.getId(), BigDecimal.ZERO);
+        }
+
+        for (String month : allMonths) {
+            LocalDate lastDate = monthlyLastDates.get(month);
+            if (lastDate != null) {
+                List<Deposit> monthDeposits = depositRepository.findByUserIdAndReconciliationDate(userId, lastDate);
+                Map<Long, BigDecimal> monthSums = monthDeposits.stream()
+                        .collect(Collectors.groupingBy(
+                                Deposit::getAccountId,
+                                Collectors.mapping(Deposit::getAmount,
+                                        Collectors.reducing(BigDecimal.ZERO, BigDecimal::add))
+                        ));
+
+                for (Account account : accounts) {
+                    BigDecimal amount = monthSums.getOrDefault(account.getId(), BigDecimal.ZERO);
+                    lastAmounts.put(account.getId(), amount);
+                    accountMonthlyAmounts.get(account.getId()).add(amount);
+                }
+            } else {
+                for (Account account : accounts) {
+                    accountMonthlyAmounts.get(account.getId()).add(lastAmounts.get(account.getId()));
+                }
+            }
+        }
+
+        List<AccountTrendStatisticsResponse.AccountSeries> series = new ArrayList<>();
+        for (Account account : accounts) {
+            series.add(new AccountTrendStatisticsResponse.AccountSeries(
+                    account.getId(),
+                    account.getName(),
+                    accountMonthlyAmounts.get(account.getId())
+            ));
+        }
+
+        return new AccountTrendStatisticsResponse(period, allMonths, series);
     }
     
     /**

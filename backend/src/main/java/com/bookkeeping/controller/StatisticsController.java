@@ -1,5 +1,6 @@
 package com.bookkeeping.controller;
 
+import com.bookkeeping.dto.AccountTrendStatisticsResponse;
 import com.bookkeeping.dto.ApiResponse;
 import com.bookkeeping.dto.MaturityStatisticsResponse;
 import com.bookkeeping.dto.MonthlyStatisticsResponse;
@@ -38,6 +39,18 @@ public class StatisticsController {
             HttpServletRequest request) {
         Long userId = (Long) request.getAttribute("userId");
         TrendStatisticsResponse response = statisticsService.getTrendStatistics(userId, period);
+        return ApiResponse.success(response);
+    }
+
+    /**
+     * 账户趋势统计（堆叠面积图）
+     */
+    @GetMapping("/account-trend")
+    public ApiResponse<AccountTrendStatisticsResponse> getAccountTrendStatistics(
+            @RequestParam String period,
+            HttpServletRequest request) {
+        Long userId = (Long) request.getAttribute("userId");
+        AccountTrendStatisticsResponse response = statisticsService.getAccountTrendStatistics(userId, period);
         return ApiResponse.success(response);
     }
     

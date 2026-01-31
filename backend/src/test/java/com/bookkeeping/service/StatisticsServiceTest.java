@@ -1,6 +1,7 @@
 package com.bookkeeping.service;
 
 import com.bookkeeping.AbstractBaseTest;
+import com.bookkeeping.dto.AccountTrendStatisticsResponse;
 import com.bookkeeping.dto.MonthlyStatisticsResponse;
 import com.bookkeeping.dto.TrendStatisticsResponse;
 import com.bookkeeping.dto.YearlyStatisticsResponse;
@@ -17,6 +18,7 @@ import org.springframework.beans.factory.annotation.Autowired;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.format.DateTimeFormatter;
 
 import static org.junit.jupiter.api.Assertions.*;
 
@@ -249,6 +251,135 @@ public class StatisticsServiceTest extends AbstractBaseTest {
         assertTrue(januaryItem.getNotes().contains("2024-01-20: 第二次对账"));
         
         System.out.println("✓ UC-STAT-005: 趋势统计包含快照备注 - 通过");
+    }
+
+    @Test
+    @DisplayName("UC-STAT-ACCOUNT-TREND-001: 账户趋势统计（最近6个月）")
+    public void testGetAccountTrendStatistics_6Months() {
+        LocalDate now = LocalDate.now().withDayOfMonth(15);
+        for (int i = 0; i < 6; i++) {
+            LocalDate date = now.minusMonths(i);
+            createSnapshot(userId, date, new BigDecimal("100000.00"));
+            createDeposit(userId, account1.getId(), date, new BigDecimal("10000").add(new BigDecimal(i * 1000)));
+            createDeposit(userId, account2.getId(), date, new BigDecimal("5000").add(new BigDecimal(i * 500)));
+        }
+
+        AccountTrendStatisticsResponse response = statisticsService.getAccountTrendStatistics(userId, "6m");
+
+        assertNotNull(response);
+        assertEquals("6m", response.getPeriod());
+        assertNotNull(response.getMonths());
+        assertTrue(response.getMonths().size() >= 6);
+        assertNotNull(response.getAccounts());
+        assertEquals(2, response.getAccounts().size());
+
+        AccountTrendStatisticsResponse.AccountSeries series1 = response.getAccounts().stream()
+                .filter(item -> item.getAccountId().equals(account1.getId()))
+                .findFirst()
+                .orElse(null);
+        assertNotNull(series1);
+        assertEquals(response.getMonths().size(), series1.getAmounts().size());
+
+        String currentMonth = now.format(DateTimeFormatter.ofPattern("yyyy-MM"));
+        int currentIndex = response.getMonths().indexOf(currentMonth);
+        assertTrue(currentIndex >= 0);
+        assertEquals(0, series1.getAmounts().get(currentIndex).compareTo(new BigDecimal("10000")));
+
+        System.out.println("✓ UC-STAT-ACCOUNT-TREND-001: 账户趋势统计（最近6个月） - 通过");
+    }
+
+    @Test
+    @DisplayName("UC-STAT-ACCOUNT-TREND-002: 账户趋势统计（最近一年）")
+    public void testGetAccountTrendStatistics_1Year() {
+        LocalDate now = LocalDate.now().withDayOfMonth(15);
+        createSnapshot(userId, now, new BigDecimal("100000.00"));
+        createDeposit(userId, account1.getId(), now, new BigDecimal("10000"));
+
+        AccountTrendStatisticsResponse response = statisticsService.getAccountTrendStatistics(userId, "1y");
+
+        assertNotNull(response);
+        assertEquals("1y", response.getPeriod());
+        assertNotNull(response.getMonths());
+        assertTrue(response.getMonths().size() >= 12);
+        assertNotNull(response.getAccounts());
+        assertEquals(2, response.getAccounts().size());
+
+        System.out.println("✓ UC-STAT-ACCOUNT-TREND-002: 账户趋势统计（最近一年） - 通过");
+    }
+
+    @Test
+    @DisplayName("UC-STAT-ACCOUNT-TREND-003: 账户趋势统计（最近3年）")
+    public void testGetAccountTrendStatistics_3Years() {
+        LocalDate now = LocalDate.now().withDayOfMonth(15);
+        createSnapshot(userId, now, new BigDecimal("100000.00"));
+        createDeposit(userId, account1.getId(), now, new BigDecimal("10000"));
+
+        AccountTrendStatisticsResponse response = statisticsService.getAccountTrendStatistics(userId, "3y");
+
+        assertNotNull(response);
+        assertEquals("3y", response.getPeriod());
+        assertNotNull(response.getMonths());
+        assertTrue(response.getMonths().size() >= 36);
+
+        System.out.println("✓ UC-STAT-ACCOUNT-TREND-003: 账户趋势统计（最近3年） - 通过");
+    }
+
+    @Test
+    @DisplayName("UC-STAT-ACCOUNT-TREND-004: 账户趋势统计（全部）")
+    public void testGetAccountTrendStatistics_All() {
+        LocalDate date1 = LocalDate.of(2023, 1, 15);
+        LocalDate date2 = LocalDate.of(2024, 6, 15);
+        createSnapshot(userId, date1, new BigDecimal("80000.00"));
+        createSnapshot(userId, date2, new BigDecimal("90000.00"));
+        createDeposit(userId, account1.getId(), date1, new BigDecimal("30000"));
+        createDeposit(userId, account2.getId(), date1, new BigDecimal("20000"));
+        createDeposit(userId, account1.getId(), date2, new BigDecimal("40000"));
+        createDeposit(userId, account2.getId(), date2, new BigDecimal("25000"));
+
+        AccountTrendStatisticsResponse response = statisticsService.getAccountTrendStatistics(userId, "all");
+
+        assertNotNull(response);
+        assertEquals("all", response.getPeriod());
+        assertNotNull(response.getMonths());
+        assertTrue(response.getMonths().contains("2023-01"));
+
+        System.out.println("✓ UC-STAT-ACCOUNT-TREND-004: 账户趋势统计（全部） - 通过");
+    }
+
+    @Test
+    @DisplayName("UC-STAT-ACCOUNT-TREND-005: 账户趋势统计（某月无记录沿用上月）")
+    public void testGetAccountTrendStatistics_MonthNoRecord() {
+        LocalDate january = LocalDate.of(2024, 1, 15);
+        LocalDate march = LocalDate.of(2024, 3, 15);
+        createSnapshot(userId, january, new BigDecimal("60000.00"));
+        createSnapshot(userId, march, new BigDecimal("80000.00"));
+        createDeposit(userId, account1.getId(), january, new BigDecimal("10000"));
+        createDeposit(userId, account2.getId(), january, new BigDecimal("20000"));
+        createDeposit(userId, account1.getId(), march, new BigDecimal("30000"));
+        createDeposit(userId, account2.getId(), march, new BigDecimal("40000"));
+
+        AccountTrendStatisticsResponse response = statisticsService.getAccountTrendStatistics(userId, "all");
+
+        int indexJan = response.getMonths().indexOf("2024-01");
+        int indexFeb = response.getMonths().indexOf("2024-02");
+        assertTrue(indexJan >= 0);
+        assertTrue(indexFeb >= 0);
+
+        AccountTrendStatisticsResponse.AccountSeries series1 = response.getAccounts().stream()
+                .filter(item -> item.getAccountId().equals(account1.getId()))
+                .findFirst()
+                .orElse(null);
+        AccountTrendStatisticsResponse.AccountSeries series2 = response.getAccounts().stream()
+                .filter(item -> item.getAccountId().equals(account2.getId()))
+                .findFirst()
+                .orElse(null);
+
+        assertNotNull(series1);
+        assertNotNull(series2);
+        assertEquals(0, series1.getAmounts().get(indexJan).compareTo(series1.getAmounts().get(indexFeb)));
+        assertEquals(0, series2.getAmounts().get(indexJan).compareTo(series2.getAmounts().get(indexFeb)));
+
+        System.out.println("✓ UC-STAT-ACCOUNT-TREND-005: 账户趋势统计（某月无记录沿用上月） - 通过");
     }
     
     @Test

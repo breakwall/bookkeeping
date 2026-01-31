@@ -44,18 +44,26 @@
             <span>趋势统计</span>
           </template>
           <div class="trend-stats">
-            <div class="stats-header">
-              <el-select
-                v-model="trendPeriod"
-                placeholder="选择趋势周期"
-                style="width: 150px"
-                @change="loadTrendStatistics"
-              >
-                <el-option label="最近6个月" value="6m" />
-                <el-option label="最近一年" value="1y" />
-                <el-option label="最近3年" value="3y" />
-                <el-option label="全部" value="all" />
-              </el-select>
+            <div class="stats-header trend-header">
+              <div class="trend-left">
+                <el-select
+                  v-model="trendPeriod"
+                  placeholder="选择趋势周期"
+                  style="width: 150px"
+                  @change="loadTrendStatistics"
+                >
+                  <el-option label="最近6个月" value="6m" />
+                  <el-option label="最近一年" value="1y" />
+                  <el-option label="最近3年" value="3y" />
+                  <el-option label="全部" value="all" />
+                </el-select>
+              </div>
+              <div class="trend-right">
+                <el-radio-group v-model="trendViewMode" size="small" @change="handleTrendViewChange">
+                  <el-radio-button label="total">总金额</el-radio-button>
+                  <el-radio-button label="account">账户资金堆叠</el-radio-button>
+                </el-radio-group>
+              </div>
             </div>
             <div class="chart-container" style="margin-top: 20px">
               <div ref="trendChartRef" style="width: 100%; height: 400px"></div>
@@ -120,13 +128,14 @@ import { ref, reactive, onMounted, nextTick } from 'vue'
 import { ElMessage } from 'element-plus'
 import * as echarts from 'echarts'
 import type { ECharts } from 'echarts'
-import { statisticsApi, type MonthlyStatistics, type TrendStatistics, type YearlyStatistics, type MaturityStatistics } from '@/api/statistics'
+import { statisticsApi, type MonthlyStatistics, type TrendStatistics, type AccountTrendStatistics, type YearlyStatistics, type MaturityStatistics } from '@/api/statistics'
 
 const activeTab = ref<string>('monthly') // 默认显示月度统计
 const selectedMonth = ref<string>(
   new Date().toISOString().slice(0, 7)
 )
 const trendPeriod = ref<string>('all')
+const trendViewMode = ref<'total' | 'account'>('total')
 const distributionChartRef = ref<HTMLDivElement>()
 const trendChartRef = ref<HTMLDivElement>()
 const yearlyChartRef = ref<HTMLDivElement>()
@@ -148,6 +157,16 @@ const trendData = reactive<{
 }>({
   period: '',
   data: []
+})
+
+const accountTrendData = reactive<{
+  period: string
+  months: AccountTrendStatistics['months']
+  accounts: AccountTrendStatistics['accounts']
+}>({
+  period: '',
+  months: [],
+  accounts: []
 })
 
 const yearlyData = reactive<{
@@ -195,12 +214,20 @@ const handleTabChange = async (tabName: string) => {
     if (!trendChart && trendChartRef.value) {
       trendChart = echarts.init(trendChartRef.value)
     }
-    if (!trendData.data.length) {
-      // 如果还没有加载过数据，则加载
-      await loadTrendStatistics()
+    if (trendViewMode.value === 'total') {
+      if (!trendData.data.length) {
+        // 如果还没有加载过数据，则加载
+        await loadTrendStatistics()
+      } else {
+        // 如果已加载过数据，只需要更新图表
+        updateTrendChart()
+      }
     } else {
-      // 如果已加载过数据，只需要更新图表
-      updateTrendChart()
+      if (!accountTrendData.accounts.length) {
+        await loadAccountTrendStatistics()
+      } else {
+        updateTrendChart()
+      }
     }
     // 调整趋势统计图表大小
     if (trendChart) {
@@ -273,6 +300,10 @@ const loadMonthlyStatistics = async () => {
 
 const loadTrendStatistics = async () => {
   try {
+    if (trendViewMode.value === 'account') {
+      await loadAccountTrendStatistics()
+      return
+    }
     const data = await statisticsApi.getTrendStatistics(trendPeriod.value)
     trendData.period = data.period
     trendData.data = data.data
@@ -283,6 +314,26 @@ const loadTrendStatistics = async () => {
     ElMessage.error(errorMessage)
     console.error('加载趋势统计失败:', error)
   }
+}
+
+const loadAccountTrendStatistics = async () => {
+  try {
+    const data = await statisticsApi.getAccountTrendStatistics(trendPeriod.value)
+    accountTrendData.period = data.period
+    accountTrendData.months = data.months
+    accountTrendData.accounts = data.accounts
+    await nextTick()
+    updateTrendChart()
+  } catch (error: any) {
+    const errorMessage = error?.response?.data?.message || error?.message || '加载账户趋势统计失败'
+    ElMessage.error(errorMessage)
+    console.error('加载账户趋势统计失败:', error)
+  }
+}
+
+const handleTrendViewChange = async () => {
+  await nextTick()
+  await loadTrendStatistics()
 }
 
 const loadYearlyStatistics = async () => {
@@ -385,8 +436,79 @@ const updateTrendChart = () => {
     trendChart = echarts.init(trendChartRef.value)
   }
   
-  if (trendData.data.length === 0) {
-    // 空数据，显示空状态
+  if (trendViewMode.value === 'total') {
+    if (trendData.data.length === 0) {
+      // 空数据，显示空状态
+      trendChart.setOption({
+        title: {
+          text: '暂无数据',
+          left: 'center',
+          top: 'center',
+          textStyle: {
+            color: '#999',
+            fontSize: 16
+          }
+        }
+      }, true)
+      return
+    }
+
+    const option = {
+      tooltip: {
+        trigger: 'axis',
+        formatter: (params: any) => {
+          const param = params[0]
+          const dataIndex = param.dataIndex
+          const monthData = trendData.data[dataIndex]
+
+          let tooltipContent = `${param.name}<br/>存款总额: ¥${param.value.toLocaleString()}`
+
+          // 如果有备注，显示备注
+          if (monthData && monthData.notes && monthData.notes.length > 0) {
+            tooltipContent += '<br/>快照备注:'
+            monthData.notes.forEach((note: string) => {
+              tooltipContent += `<br/>${note}`
+            })
+          }
+
+          return tooltipContent
+        }
+      },
+      xAxis: {
+        type: 'category',
+        data: trendData.data.map(item => item.month),
+        axisLabel: {
+          rotate: 45 // 如果月份太多，旋转45度
+        }
+      },
+      yAxis: {
+        type: 'value',
+        axisLabel: {
+          formatter: (value: number) => {
+            if (value >= 10000) {
+              return `¥${(value / 10000).toFixed(1)}万`
+            }
+            return `¥${value.toLocaleString()}`
+          }
+        }
+      },
+      series: [
+        {
+          name: '存款总额',
+          type: 'line',
+          data: trendData.data.map(item => Number(item.totalAmount)),
+          smooth: true,
+          areaStyle: {
+            opacity: 0.3
+          }
+        }
+      ]
+    }
+    trendChart.setOption(option, true)
+    return
+  }
+
+  if (accountTrendData.months.length === 0 || accountTrendData.accounts.length === 0) {
     trendChart.setOption({
       title: {
         text: '暂无数据',
@@ -400,33 +522,30 @@ const updateTrendChart = () => {
     }, true)
     return
   }
-  
+
   const option = {
     tooltip: {
       trigger: 'axis',
       formatter: (params: any) => {
-        const param = params[0]
-        const dataIndex = param.dataIndex
-        const monthData = trendData.data[dataIndex]
-        
-        let tooltipContent = `${param.name}<br/>存款总额: ¥${param.value.toLocaleString()}`
-        
-        // 如果有备注，显示备注
-        if (monthData && monthData.notes && monthData.notes.length > 0) {
-          tooltipContent += '<br/>快照备注:'
-          monthData.notes.forEach((note: string) => {
-            tooltipContent += `<br/>${note}`
-          })
-        }
-        
-        return tooltipContent
+        let total = 0
+        const lines = [`${params[0].name}`]
+        params.forEach((param: any) => {
+          const value = Number(param.value || 0)
+          total += value
+          lines.push(`${param.marker}${param.seriesName}: ¥${value.toLocaleString()}`)
+        })
+        lines.push(`总计: ¥${total.toLocaleString()}`)
+        return lines.join('<br/>')
       }
+    },
+    legend: {
+      type: 'scroll'
     },
     xAxis: {
       type: 'category',
-      data: trendData.data.map(item => item.month),
+      data: accountTrendData.months,
       axisLabel: {
-        rotate: 45 // 如果月份太多，旋转45度
+        rotate: 45
       }
     },
     yAxis: {
@@ -440,18 +559,21 @@ const updateTrendChart = () => {
         }
       }
     },
-    series: [
-      {
-        name: '存款总额',
-        type: 'line',
-        data: trendData.data.map(item => Number(item.totalAmount)),
-        smooth: true,
-        areaStyle: {
-          opacity: 0.3
-        }
-      }
-    ]
+    series: accountTrendData.accounts.map(account => ({
+      name: account.accountName,
+      type: 'line',
+      stack: 'total',
+      smooth: true,
+      areaStyle: {
+        opacity: 0.6
+      },
+      emphasis: {
+        focus: 'series'
+      },
+      data: account.amounts.map(value => Number(value))
+    }))
   }
+
   trendChart.setOption(option, true)
 }
 
@@ -554,6 +676,18 @@ const updateYearlyChart = () => {
 
 .stats-header {
   margin-bottom: 20px;
+}
+
+.trend-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.trend-header .trend-right {
+  display: flex;
+  justify-content: flex-end;
 }
 
 .monthly-stats,
