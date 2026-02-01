@@ -1,0 +1,126 @@
+@media (max-width: 768px) {
+  body {
+    overflow-x: hidden;
+  }
+
+  #app {
+    width: 100%;
+    min-height: 100vh;
+  }
+
+  .home-container {
+    height: auto;
+    min-height: 100vh;
+  }
+
+  .header {
+    flex-wrap: wrap;
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .header-left h2 {
+    font-size: 18px;
+  }
+
+  .header-right {
+    width: 100%;
+    justify-content: flex-start;
+    gap: 8px;
+    flex-wrap: wrap;
+  }
+
+  .aside {
+    width: 160px !important;
+  }
+
+  .main {
+    padding: 12px;
+  }
+
+  .login-container {
+    padding: 16px;
+  }
+
+  .login-card {
+    width: 100%;
+    max-width: 420px;
+  }
+
+  .el-dialog {
+    width: 90% !important;
+    margin-top: 8vh !important;
+  }
+
+  .card-header {
+    flex-wrap: wrap;
+    gap: 10px;
+  }
+
+  .header-actions {
+    width: 100%;
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .nav-buttons {
+    display: flex;
+    gap: 6px;
+  }
+
+  .account-header {
+    flex-wrap: wrap;
+    gap: 8px;
+  }
+
+  .el-card {
+    overflow: hidden;
+  }
+
+  .el-table {
+    width: 100%;
+  }
+
+  .el-table__body-wrapper {
+    overflow-x: auto;
+  }
+
+  .chart-container {
+    margin-top: 12px;
+  }
+
+  .chart-container > div {
+    height: 320px !important;
+  }
+}
+
+@media (max-width: 480px) {
+  .header-left h2 {
+    font-size: 16px;
+  }
+
+  .aside {
+    width: 120px !important;
+  }
+
+  .main {
+    padding: 8px;
+  }
+
+  .login-card {
+    max-width: 100%;
+  }
+
+  .el-dialog {
+    width: 94% !important;
+    margin-top: 6vh !important;
+  }
+
+  .el-form-item__label {
+    width: 70px !important;
+  }
+
+  .chart-container > div {
+    height: 260px !important;
+  }
+}
